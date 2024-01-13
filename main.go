@@ -111,7 +111,10 @@ func main() {
 
 	r.HandleFunc("/", indexHandler)
 
-	r.HandleFunc("/getToken", getTokenHandler).Methods("POST")
+	r.HandleFunc("/requestToken", requestTokenHandler).Methods("POST")
+
+	// endpoint /getLibraries/postcode/{postcode}/count/{count} post quest
+	r.HandleFunc("/getLibraries/postcode/{postcode}/count/{count}", getLibrariesHandler).Methods("GET")
 
 	http.ListenAndServe(fmt.Sprintf(":%s", port), r)
 
@@ -124,7 +127,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, message)
 }
 
-func getTokenHandler(w http.ResponseWriter, r *http.Request) {
+func requestTokenHandler(w http.ResponseWriter, r *http.Request) {
 	// check is post request
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -173,4 +176,72 @@ func getTokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	io.WriteString(w, apiKey)
+}
+
+func getLibrariesHandler(w http.ResponseWriter, r *http.Request) {
+	// check is post request
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// get params
+	params := mux.Vars(r)
+
+	// check params
+	postcode := params["postcode"]
+	count := params["count"]
+
+	if postcode == "" {
+		http.Error(w, "Postcode is required", http.StatusBadRequest)
+		return
+	}
+
+	if count == "" {
+		http.Error(w, "Count is required", http.StatusBadRequest)
+		return
+	}
+
+	// check count is integer
+	intCount, err := strconv.Atoi(count)
+
+	if err != nil {
+		http.Error(w, "Count must be an integer", http.StatusBadRequest)
+		return
+	}
+
+	if intCount <= 0 {
+		http.Error(w, "Count must be greater than 0", http.StatusBadRequest)
+		return
+	}
+
+	// check api key
+	apiKey := r.Header.Get("X-API-KEY")
+
+	if apiKey == "" {
+		http.Error(w, "API Key is required", http.StatusBadRequest)
+		return
+	}
+
+	valid, err := db.ValidateApiKey(apiKey)
+
+	if err != nil {
+		http.Error(w, "Error validating api key", http.StatusInternalServerError)
+		return
+	}
+
+	if !valid {
+		http.Error(w, "Invalid API Key", http.StatusUnauthorized)
+		return
+	}
+
+	// return json with count and postcode for testing
+	value, err := helpers.EncodeJson(w, map[string]string{"postcode": postcode, "count": count, "apiKey": apiKey})
+
+	if err != nil {
+		http.Error(w, "Error encoding json", http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(value)
 }

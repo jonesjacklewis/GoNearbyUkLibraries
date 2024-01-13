@@ -98,3 +98,15 @@ func GetApiKey(email string) (string, error) {
 
 	return apiKey, err
 }
+
+func ValidateApiKey(apiKey string) (bool, error) {
+	sqlStmt := `
+	SELECT EXISTS(SELECT 1 FROM api_keys WHERE api_key = ? LIMIT 1);
+	`
+
+	var exists bool
+
+	err := DB.QueryRow(sqlStmt, apiKey).Scan(&exists)
+
+	return exists, err
+}

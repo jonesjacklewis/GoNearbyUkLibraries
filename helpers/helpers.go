@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"net/http"
 )
 
 func GenerateToken() string {
@@ -40,4 +41,16 @@ func DecodeJson(body io.ReadCloser, v interface{}) error {
 	}
 
 	return nil
+}
+
+func EncodeJson(h http.ResponseWriter, v interface{}) ([]byte, error) {
+	h.Header().Set("Content-Type", "application/json")
+
+	b, err := json.Marshal(v)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
 }
