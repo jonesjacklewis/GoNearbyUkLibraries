@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"example/hello/db"
+	"example/hello/email"
 	"example/hello/helpers"
 
 	"os"
@@ -143,9 +144,9 @@ func getTokenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := body.Email
+	emailAddress := body.Email
 
-	if email == "" {
+	if emailAddress == "" {
 		http.Error(w, "Email is required", http.StatusBadRequest)
 		return
 	}
@@ -154,12 +155,20 @@ func getTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 	apiKey := helpers.GenerateToken()
 
-	db.InsertApiKey(email, apiKey)
+	db.InsertApiKey(emailAddress, apiKey)
 
-	apiKey, err = db.GetApiKey(email)
+	apiKey, err = db.GetApiKey(emailAddress)
 
 	if err != nil {
 		http.Error(w, "Error getting api key", http.StatusInternalServerError)
+		return
+	}
+
+	err = email.SendEmail(emailAddress, "Authentication Key", fmt.Sprintf("Your authentication key is: %s", apiKey))
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Error sending email", http.StatusInternalServerError)
 		return
 	}
 
