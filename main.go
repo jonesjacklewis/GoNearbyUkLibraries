@@ -116,9 +116,9 @@ func main() {
 	// endpoint /getLibraries/postcode/{postcode}/count/{count} post quest
 	r.HandleFunc("/getLibraries/postcode/{postcode}/count/{count}", getLibrariesHandler).Methods("GET")
 
+	fmt.Println(fmt.Sprintf("Server running on port %s", port))
 	http.ListenAndServe(fmt.Sprintf(":%s", port), r)
 
-	fmt.Println(fmt.Sprintf("Server running on port %s", port))
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
