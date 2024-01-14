@@ -29,10 +29,12 @@ func GenerateToken() string {
 	return fmt.Sprintf("%s", bytes)
 }
 
-func DecodeJson(body io.ReadCloser, v interface{}) error {
+func DecodeJson(body io.ReadCloser, v interface{}, allowUnknownFields bool) error {
 	decoder := json.NewDecoder(body)
 
-	decoder.DisallowUnknownFields() // Optional: prevent decoding if unknown fields are present
+	if !allowUnknownFields {
+		decoder.DisallowUnknownFields() // Optional: prevent decoding if unknown fields are present
+	}
 
 	err := decoder.Decode(v)
 

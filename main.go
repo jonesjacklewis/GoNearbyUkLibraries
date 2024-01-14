@@ -8,6 +8,7 @@ import (
 	"example/hello/db"
 	"example/hello/email"
 	"example/hello/helpers"
+	"example/hello/thirdPartyIntegrations"
 
 	"os"
 
@@ -140,7 +141,7 @@ func requestTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 	var body RequestBody
 
-	err := helpers.DecodeJson(r.Body, &body)
+	err := helpers.DecodeJson(r.Body, &body, false)
 
 	if err != nil {
 		http.Error(w, "Error decoding json", http.StatusBadRequest)
@@ -235,8 +236,30 @@ func getLibrariesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// check postcode is valid
+	valid = thirdPartyIntegrations.CheckPostcodeIsValid(postcode)
+
+	if !valid {
+		http.Error(w, "Invalid Postcode", http.StatusBadRequest)
+		return
+	}
+
+	// get point for postcode
+	point, err := thirdPartyIntegrations.GetPointForPostcode(postcode)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	// return json with count and postcode for testing
-	value, err := helpers.EncodeJson(w, map[string]string{"postcode": postcode, "count": count, "apiKey": apiKey})
+	value, err := helpers.EncodeJson(w, map[string]string{
+		"postcode":  postcode,
+		"count":     count,
+		"apiKey":    apiKey,
+		"latitude":  fmt.Sprintf("%f", point.Latitude),
+		"longitude": fmt.Sprintf("%f", point.Longitude),
+	})
 
 	if err != nil {
 		http.Error(w, "Error encoding json", http.StatusInternalServerError)
