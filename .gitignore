@@ -1,2 +1,5 @@
 .env
 db/database.db
+*.py
+test.json
+.DS_Store

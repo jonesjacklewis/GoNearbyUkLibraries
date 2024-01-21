@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"io"
-	"net/http"
-
 	"example/hello/db"
 	"example/hello/email"
 	"example/hello/helpers"
 	"example/hello/thirdPartyIntegrations"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
 
 	"os"
 
@@ -119,6 +119,23 @@ func main() {
 
 	fmt.Println(fmt.Sprintf("Server running on port %s", port))
 	http.ListenAndServe(fmt.Sprintf(":%s", port), r)
+
+}
+
+func populateDatabaseWithLibraries() {
+
+	db.TidyUp(maxDaysLibrary, maxDaysApiKey)
+
+	libraries, err := thirdPartyIntegrations.GetAllLibraries()
+
+	if err != nil {
+		println(err)
+		panic(err)
+	}
+
+	for _, library := range libraries {
+		db.InsertLibrary(library)
+	}
 
 }
 
@@ -236,6 +253,15 @@ func getLibrariesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	OldestDateAddedLibraries := db.GetOldestDateAddedLibraries()
+	now := time.Now()
+	sixMonthsAgo := now.AddDate(0, -6, 0)
+
+	if OldestDateAddedLibraries.Before(sixMonthsAgo) {
+		fmt.Printf("Populating database with libraries\n")
+		populateDatabaseWithLibraries()
+	}
+
 	// check postcode is valid
 	valid = thirdPartyIntegrations.CheckPostcodeIsValid(postcode)
 
@@ -252,14 +278,21 @@ func getLibrariesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get libraries
+	libraries, err := db.GetLibraries()
+
+	if err != nil {
+		http.Error(w, "Error getting libraries", http.StatusInternalServerError)
+		return
+	}
+
+	distanceLibraries := helpers.GetDistanceLibraries(libraries, point)
+
+	// n nearest libraries
+	distanceLibraries = distanceLibraries[:intCount]
+
 	// return json with count and postcode for testing
-	value, err := helpers.EncodeJson(w, map[string]string{
-		"postcode":  postcode,
-		"count":     count,
-		"apiKey":    apiKey,
-		"latitude":  fmt.Sprintf("%f", point.Latitude),
-		"longitude": fmt.Sprintf("%f", point.Longitude),
-	})
+	value, err := helpers.EncodeJson(w, distanceLibraries)
 
 	if err != nil {
 		http.Error(w, "Error encoding json", http.StatusInternalServerError)

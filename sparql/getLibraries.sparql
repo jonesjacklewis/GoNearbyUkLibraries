@@ -1,0 +1,14 @@
+SELECT DISTINCT ?item ?itemLabel ?coord ?startTime ?endTime WHERE {
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+  {
+    SELECT DISTINCT ?item WHERE {
+      ?item p:P31 ?statement0.
+      ?statement0 (ps:P31/(wdt:P279*)) wd:Q28564.
+      ?item p:P17 ?statement1.
+      ?statement1 (ps:P17/(wdt:P279*)) wd:Q145.
+    }
+  }
+  OPTIONAL { ?item wdt:P625 ?coord. }
+  OPTIONAL { ?item wdt:P580 ?startTime. }
+  OPTIONAL { ?item wdt:P582 ?endTime. }
+}
